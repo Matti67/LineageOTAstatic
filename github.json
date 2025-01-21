@@ -1,14 +1,14 @@
 [
   {
-    "name": "ADeadTrousers/android_device_Unihertz_Atom_L_EEA"
-  },
-  {
-    "name": "ADeadTrousers/android_device_Unihertz_Atom_L_TEE"
-  },
-  {
-    "name": "ADeadTrousers/android_device_Unihertz_Atom_XL_EEA"
-  },
-  {
-    "name": "ADeadTrousers/android_device_Unihertz_Atom_XL_TEE"
-  }
+    "name": "137.204.2.22:443/releases"
+  }//,
+  //{
+    //"name": "ADeadTrousers/android_device_Unihertz_Atom_L_TEE"
+  //},
+  //{
+    //"name": "ADeadTrousers/android_device_Unihertz_Atom_XL_EEA"
+  //},
+  //{
+    //"name": "ADeadTrousers/android_device_Unihertz_Atom_XL_TEE"
+  //}
 ]
