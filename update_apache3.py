@@ -91,30 +91,36 @@ class LOTABuilds:
   def __parseApacheDirectory(self, content):
     # Parse the directory listing for relevant release files (ZIP, MD5, PROPERTIES, etc.)
     release_urls = []
-    # Assuming that the server provides a simple HTML directory listing:
+    # Assuming the server provides a simple HTML directory listing:
     links = re.findall(r'href=["\']([^"\']+)["\']', content)
     for link in links:
-      if link.endswith('.zip') or link.endswith('.md5sum') or link.endswith('.prop'): #or link.endswith('.txt'):
-        release_urls.append(link)
+        # Only include valid file types
+        if link.endswith('.zip') or link.endswith('.md5sum') or link.endswith('.prop'):
+            release_urls.append(link.strip())  # Strip any extraneous whitespace
     print(f"Parsed release URLs: {release_urls}")  # Debugging output
     return release_urls
 
   def __loadApacheReleases(self, release_url):
-    # Assume that release_url will return a list of assets (e.g., .zip, .md5sum, etc.)
-    release_files = {
-      'zip': None,
-      'md5sum': None,
-      'prop': None
-    }
+    # Sanitize file name
+    sanitized_url = release_url.strip()
+    if not sanitized_url.startswith(('http://', 'https://')):
+        sanitized_url = f'{self.__base_url}/{sanitized_url}'  # Ensure proper base URL
 
+    print(f"Processing release URL: {sanitized_url}")
+
+    release_files = {
+        'zip': None,
+        'md5sum': None,
+        'prop': None
+    }
     # Download the corresponding release assets
-    release_files['zip'] = self.__loadFile(f'{self.__base_url}/{release_url}')
-    #release_files['txt'] = self.__loadFile(f'{self.__base_url}/{release_url.replace(".zip", ".txt")}')
-    release_files['md5sum'] = self.__loadFile(f'{self.__base_url}/{release_url.replace(".zip", ".md5sum")}')
-    release_files['prop'] = self.__loadFile(f'{self.__base_url}/{release_url.replace(".zip", ".prop")}')
+    if sanitized_url.endswith('.zip'):
+        release_files['zip'] = sanitized_url
+        release_files['md5sum'] = f'{sanitized_url}.md5sum'
+        release_files['prop'] = f'{sanitized_url}.prop'
+
     self.__parseApacheBuild(release_files)
     return release_files
-
 
   def __hasBufferedReleases(self):
     if not os.path.isdir('buffer') or not os.listdir('buffer'):
@@ -147,37 +153,40 @@ class LOTABuilds:
       self.__clearFolder('buffer')
 
   def __parseApacheBuild(self, release):
-    ######################################
     try:
-      print(f'Parsing release "{release["zip"]}"')
-      build = {}
-      build['filePath'] = release['zip']
-      build['url'] = release['zip']
-      build['filename'] = os.path.basename(release['zip'])
-      build['timestamp'] = int(time.mktime(datetime.datetime.now().timetuple()))  # Use current time as timestamp
-      build['model'] = self.__parseFilenameFull(build['filename'])[4]  # Extract model from the filename
-      build['version'] = 'Unknown'  # Default version if not available
-      build['size'] = 123456  # Example size, replace with actual file size if possible
+        if not release['zip']:
+            print("No ZIP file found, skipping.")
+            return
 
-      # Parse MD5, changelog, and properties
-      if 'txt' in release:
-        build['changelogUrl'] = release['txt']
-      if 'md5sum' in release:
-        build['md5'] = self.__loadMd5sums(release['md5sum'])
+        print(f'Parsing release "{release["zip"]}"')
 
-      if 'prop' in release:
-        properties = self.__loadProperties(release['prop'])
-        build['timestamp'] = int(properties.get('build.timestamp', build['timestamp']))
-        build['incremental'] = properties.get('build.incremental', '')
+        build = {}
+        build['filePath'] = release['zip']
+        build['url'] = release['zip']
+        build['filename'] = os.path.basename(release['zip'])
+        build['timestamp'] = int(time.mktime(datetime.datetime.now().timetuple()))  # Use current time as timestamp
+        build['model'] = self.__parseFilenameFull(build['filename'])[4]  # Extract model from the filename
+        build['version'] = 'Unknown'  # Default version if not available
+        build['size'] = 123456  # Example size, replace with actual file size if possible
 
-      # Generate a UID based on the data
-      seed = str(build.get('timestamp', 0)) + build.get('model', '') + build.get('version', '')
-      build['uid'] = hashlib.sha256(seed.encode('utf-8')).hexdigest()
-      self.__builds.append(build)
-      print(f"Added build to __builds: {build}")
+        # Parse MD5, changelog, and properties
+        if release.get('md5sum'):
+            build['md5'] = self.__loadMd5sums(release['md5sum'])
+
+        if release.get('prop'):
+            properties = self.__loadProperties(release['prop'])
+            build['timestamp'] = int(properties.get('build.timestamp', build['timestamp']))
+            build['incremental'] = properties.get('build.incremental', '')
+
+        # Generate a UID based on the data
+        seed = f"{build.get('timestamp', 0)}{build.get('model', '')}{build.get('version', '')}"
+        build['uid'] = hashlib.sha256(seed.encode('utf-8')).hexdigest()
+
+        self.__builds.append(build)
+        print(f"Added build to __builds: {build}")
+
     except Exception as error:
-      #print(error)
-      print(f"Error parsing build: {error}")
+        print(f"Error parsing build: {error}")
 
   def __parseFilenameFull(self, fileName):
       # Regular expression to match the structure of the filename
@@ -314,4 +323,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

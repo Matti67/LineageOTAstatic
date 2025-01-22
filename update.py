@@ -9,8 +9,10 @@ import hashlib
 import base64
 import io
 from packaging import version
-from pathvalidate import sanitize_filename
+#import version
+#from pathvalidate import sanitize_filename
 from tqdm import tqdm
+#import tqdm
 
 # BEGIN CLASS LOTABuilds
 class LOTABuilds:
@@ -18,6 +20,10 @@ class LOTABuilds:
   def __init__(self,buffer = False):
     self.__builds = []
     self.__buffer = buffer
+
+  def sanitize_filename(filename):
+  #    # Replace invalid characters with underscores
+      return re.sub(r'[<>:"/\\|?*\x00-\x1F]', '_', filename)
 
   def loadGithub(self):
     if not os.path.isfile('github.json'):
