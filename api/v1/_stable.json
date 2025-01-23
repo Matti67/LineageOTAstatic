@@ -1,0 +1,19 @@
+{
+    "response": [
+        {
+            "incremental": "",
+            "api_level": "",
+            "url": "https://137.204.2.22:443/releases/lineage-19.1-20250121-UNOFFICIAL-a505f-ota_eng_max.zip",
+            "timestamp": 1737665251,
+            "md5sum": "Unknown",
+            "changes": "",
+            "channel": "stable",
+            "filename": "lineage-19.1-20250121-UNOFFICIAL-a505f-ota_eng_max.zip",
+            "romtype": "stable",
+            "datetime": 1737665251,
+            "version": "Unknown",
+            "id": "c8d35f0488b07b4e542f3b0a84eb0d7a485389fa62ed24a3330e6bf1732f0b76",
+            "size": 123456
+        }
+    ]
+}

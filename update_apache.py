@@ -188,8 +188,10 @@ class LOTABuilds:
         
         build = {}
         if 'zip' in release or release['zip']:
+            tokens = self.__parseFilenameFull(release['zip'])
             build['filePath'] = release['zip']
-            build['url'] = release['zip']
+            build['url'] = self.__base_url+'/'+release['zip']
+            build['channel'] = self.__getChannel(re.sub('/[0-9]/','',tokens[3]), tokens[0], tokens[1])
             build['filename'] = os.path.basename(release['zip'])  # Extract filename from the 'zip' field
             build['timestamp'] = int(time.mktime(datetime.datetime.now().timetuple()))  # Use current time as timestamp
             build['model'] = self.__parseFilenameFull(build['filename'])[4]  # Extract model from the filename
@@ -323,6 +325,17 @@ class LOTABuilds:
 
       return md5sums
 
+  def __getChannel(self,tokenChannel,tokenType,tokenVersion):
+    result = 'stable'
+    channel = tokenChannel.lower()
+    if channel:
+      result = channel
+      if tokenType == 'cm' or version.parse(tokenVersion) < version.parse('14.1'):
+        if channel== 'experimental':
+          result = 'snapshot'
+        elif channel == 'unofficial':
+          result = 'nightly'
+    return result
 
   def __clearFolder(self, folder):
     for root, dirs, files in os.walk(folder, topdown=False):
@@ -368,7 +381,7 @@ class LOTABuilds:
               updates.append(update)
         if updates:
           response = { "response": updates }
-          print(f"Saving to {json_filename}")  # Debugging output
+          #print(f"Saving to {json_filename}")  # Debugging output
           with open(f'api/v1/{model}_{channel}.json', 'w') as file:
             json.dump(response, file, indent=4)
 
