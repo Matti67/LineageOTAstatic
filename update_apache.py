@@ -13,7 +13,7 @@ import hashlib
 import base64
 import io
 import chardet
-#from packaging import version
+from packaging import version
 #import version
 #from pathvalidate import sanitize_filename
 from tqdm import tqdm
@@ -22,9 +22,13 @@ print(certifi.where())
 # BEGIN CLASS LOTABuilds
 class LOTABuilds:
 
+  @staticmethod
   def sanitize_filename(filename):
-  #    # Replace invalid characters with underscores
-      return re.sub(r'[<>:"/\\|?*\x00-\x1F]', '_', filename)
+    return re.sub(r'[<>:"/\\|?*\x00-\x1F]', '_', filename)
+
+  #def sanitize_filename(filename):
+  ##    # Replace invalid characters with underscores
+  #    return re.sub(r'[<>:"/\\|?*\x00-\x1F]', '_', filename)
 
   def __init__(self, buffer=False, base_url=''):
     self.__builds = []
@@ -77,6 +81,7 @@ class LOTABuilds:
   #  return content.read().decode(response.info().get_content_charset('utf-8'))
 
   def __loadStringRequest(self, request):
+    print(f"this is the request at the beginning of __loadStringRequest: {request}")
     response = urllib.request.urlopen(request)
     content = io.BytesIO()
     total_length = int(response.getheader('Content-Length', 0))  # Get total length of content if available
@@ -123,8 +128,8 @@ class LOTABuilds:
         if extension == '.md5sum':
           full_url = f"{self.__base_url}/{asset}"
           print(f"This is full_url: {full_url}")
-          #release_files['md5sum'] = self.__loadStringRequest(full_url)
-          release_files['md5sum'] = asset
+          release_files['md5sum'] = self.__loadStringRequest(full_url)
+          #release_files['md5sum'] = asset
         elif extension == '.prop':
           full_url = f"{self.__base_url}/{asset}"
           print(f"This is full_url: {full_url}")
@@ -136,10 +141,13 @@ class LOTABuilds:
           release_files['zip'] = asset
 
         # Ensure the release is not empty and only process valid releases
-        if any(release_files.values()):
-            self.__parseApacheBuild(release_files)
-        else:
-            print(f"Skipping empty release: {release_url}")
+      print(f"This is release_files['md5sum']: {release_files['md5sum']}")
+      print(f"This is release_files['prop']: {release_files['prop']}")
+      print(f"This is release_files['zip']: {release_files['zip']}")
+      if any(release_files.values()):
+          self.__parseApacheBuild(release_files)
+      else:
+          print(f"Skipping empty release: {release_url}")
     else:
         print(f"Invalid release URL: {release_url}")
 
@@ -177,93 +185,126 @@ class LOTABuilds:
     if os.path.isdir('buffer'):
       self.__clearFolder('buffer')
 
-  def __parseApacheBuild(self, release):
+  
+  def __parseApacheBuild(self,release):
     try:
-        # Check if release data is correct
-        if not any(release.values()):
+      #  
+      if not any(release.values()):
             print(f"Skipping empty release: {release}")
             return
 
-        print(f'Parsing release: {release}')
+      print(f'Parsing release: {release}')
         
-        build = {}
-        if 'zip' in release or release['zip']:
-            tokens = self.__parseFilenameFull(release['zip'])
-            build['filePath'] = release['zip']
-            build['url'] = self.__base_url+'/'+release['zip']
-            build['channel'] = self.__getChannel(re.sub('/[0-9]/','',tokens[3]), tokens[0], tokens[1])
-            build['filename'] = os.path.basename(release['zip'])  # Extract filename from the 'zip' field
-            build['timestamp'] = int(time.mktime(datetime.datetime.now().timetuple()))  # Use current time as timestamp
-            build['model'] = self.__parseFilenameFull(build['filename'])[4]  # Extract model from the filename
-            build['version'] = 'Unknown'  # Default version if not available
-            build['size'] = 123456  # Example size, replace with actual file size if possible
-        else:
-            print(f"Warning: Zip file is missing or None in release: {release}")
-            build['filename'] = 'unknown.zip'  # Use a placeholder if 'zip' is missing
-            build['timestamp'] = int(time.mktime(datetime.datetime.now().timetuple()))  # Default to current time
-            build['model'] = 'Unknown'  # Default model
-            build['version'] = 'Unknown'  # Default version
-            build['size'] = 0  # Default size
+      build = {}
+      #print(f'Parsing release "{release["name"]}"')
+      archives = []
+      props = []
+      md5sums = []
+      changelogs = []
+      props_dict = {}
+      #build = {}
+      # First split all assets because they are not properly sorted
+      for key, value in release.items():
+        print(f"@@@@@@@@@@@@@@@@@@@@@@")  
+        print(key+" "+ str(value))
+      #for asset in release['assets']:
+        #extension = os.path.splitext(asset['name'])[1]
+        extension = key
+        print(f"this is the extension: {extension}")
+        if extension == '.txt':
+          changelogs.append(value)
+        #elif extension == '.html':
+        #  changelogs.append(asset)
+        elif extension == 'md5sum':
+          md5sums.append(value)
+        elif extension == 'prop':
+          props=str(value).split("\n")
+          #props.append(value)
+        elif extension == 'zip':
+          archives.append(value)
+      print(f"this is the prop file: {props}")
+        # Debugging output
+      print(f"Props: {props}")
+      print(f"Archives: {archives}")
+      print(f"MD5sums: {md5sums}")
 
-        if 'md5sum' in release and release['md5sum']:
-            md5sums = self.__loadMd5sumsFromString(release['md5sum'])
-            build['md5'] = md5sums.get(build['filename'], 'Unknown')  # Get the md5sum for the file
-        
-        if 'prop' in release:
-            properties = self.__loadProperties(release['prop'])
-            build['timestamp'] = int(properties.get('build.timestamp', build.get('timestamp', int(time.mktime(datetime.datetime.now().timetuple())))))
-            build['incremental'] = properties.get('build.incremental', '')
-
-        # Generate a UID based on the data
-        seed = str(build.get('timestamp', 0)) + build.get('model', '') + build.get('version', '')
-        build['uid'] = hashlib.sha256(seed.encode('utf-8')).hexdigest()
-
-        # Add build to the list
-        self.__builds.append(build)
-        print(f"Added build to __builds: {build}")
+      #prop_list = .split(",")
+      for item in props:
+        if "=" in item:
+          key = item.split("=",1)[0]
+          value = item.split("=",1)[1]
+          props_dict[key] = value  
+      print(f"the new created dictionary is: {props_dict}")
+      for archive in archives:
+        tokens = self.__parseFilenameFull(archive)
+        print(f"these are the tokens: {tokens}")
+        #build['filePath'] = archive['browser_download_url']
+        #build['url'] = archive['browser_download_url']
+        build['url'] = self.__base_url+'/'+archive
+        build['channel'] = self.__getChannel(re.sub('/[0-9]/','',tokens[2]), tokens[0], tokens[1])
+        #build['filename'] = archive['name']
+        #build['timestamp'] = int(time.mktime(datetime.datetime.strptime(archive['updated_at'],'%Y-%m-%dT%H:%M:%SZ').timetuple()))
+        build['model'] = tokens[0] if tokens[1] == 'cm' else tokens[3]
+        build['version'] = tokens[0]
+        #build['size'] = archive['size']
+      #for prop in props:
+      #  properties = self.__loadProperties(prop['browser_download_url'])
+      #  build['timestamp'] = int(properties.get('ro.build.date.utc',build['timestamp']))
+      #  build['incremental'] = properties.get('ro.build.version.incremental','')
+      #  build['apiLevel'] = properties.get('ro.build.version.sdk','')
+      #  build['model'] = properties.get('ro.lineage.device',properties.get('ro.cm.device',build['model']))
+      #for md5sum in md5sums:
+      #  md5s = self.__loadMd5sums(md5sum)
+      #  build['md5'] = md5s.get(build['filename'],'')
+      #for changelog in changelogs:
+      #  build['changelogUrl'] = changelog['browser_download_url']
+      #if not 'changelogUrl' in build:
+      #  build['changelogUrl'] = release['html_url']
+      #seed = str(build.get('timestamp',0))+build.get('model','')+build.get('apiLevel','')
+      #build['uid'] = hashlib.sha256(seed.encode('utf-8')).hexdigest()
+      print(f"Final build object: {build}")
+      self.__builds.append(build)
     except Exception as error:
-        print(f"Error parsing build: {error}")
-
-
+      print(error)
 
   def __parseFilenameFull(self, fileName):
-      # Regular expression to match the structure of the filename
-      matches = re.match(r'lineage-(\d+\.\d+)-(\d+)-UNOFFICIAL-([A-Za-z0-9_]+)\.zip', fileName)
-      
-      if not matches:
-          return ['', '', '', '', '', '']  # If it doesn't match, return empty components
+    # Regular expression to match the structure of the filename
+    matches = re.match(r'lineage-(\d+\.\d+)-(\d+)-UNOFFICIAL-([A-Za-z0-9_]+(?:-[A-Za-z0-9_]+)*)\.zip', fileName)
 
-      # Extract components
-      version = matches.group(1)
-      timestamp = matches.group(2)
-      model = matches.group(3)
+    if not matches:
+        # If it doesn't match, return a list of empty components
+        return ['', '', '', '', '', '']
+    
+    # Extract components
+    version = matches.group(1)
+    timestamp = matches.group(2)
+    model = matches.group(3)
+    print(f"these are the values from inside __parseFilenameFull: {version} , {timestamp} , {model}")
+    # Construct the tokens according to the required schema
+    return self.__removeTrailingDashes([version, timestamp, 'UNOFFICIAL', model])
 
-      # Construct the tokens according to the required schema
-      # (For simplicity, 'UNOFFICIAL' is hardcoded as it's in the filename format)
-      return ['', version, timestamp, 'UNOFFICIAL', model, '']
+  #def __loadFile(self, url):
+  #    try:
+  #        response = urllib.request.urlopen(url)
+  #        content = response.read()
+  #        
+  #        # Use chardet to detect the encoding
+  #        result = chardet.detect(content)
+  #        encoding = result['encoding'] if result['encoding'] else 'utf-8'
+#
+  #        # Decode content using detected encoding
+  #        content = content.decode(encoding, errors='replace')  # Replace undecodable chars
+  #        return content
+  #    except urllib.error.URLError as e:
+  #        print(f"URL error occurred while accessing {url}: {e.reason}")
+  #    except urllib.error.HTTPError as e:
+  #        print(f"HTTP error occurred while accessing {url}: {e.code} - {e.reason}")
+  #    except Exception as e:
+  #        print(f"An unexpected error occurred: {e}")
+  #    return None
 
- 
-  def __loadFile(self, url):
-      try:
-          response = urllib.request.urlopen(url)
-          content = response.read()
-          
-          # Use chardet to detect the encoding
-          result = chardet.detect(content)
-          encoding = result['encoding'] if result['encoding'] else 'utf-8'
-
-          # Decode content using detected encoding
-          content = content.decode(encoding, errors='replace')  # Replace undecodable chars
-          return content
-      except urllib.error.URLError as e:
-          print(f"URL error occurred while accessing {url}: {e.reason}")
-      except urllib.error.HTTPError as e:
-          print(f"HTTP error occurred while accessing {url}: {e.code} - {e.reason}")
-      except Exception as e:
-          print(f"An unexpected error occurred: {e}")
-      return None
-
-
+  def __loadFile(self,url):
+    return self.__loadStringRequest(urllib.request.Request(url)).splitlines()
 
 
   def __loadProperties(self, url):
@@ -333,7 +374,7 @@ class LOTABuilds:
       if tokenType == 'cm' or version.parse(tokenVersion) < version.parse('14.1'):
         if channel== 'experimental':
           result = 'snapshot'
-        elif channel == 'unofficial':
+        elif channel == 'UNOFFICIAL':
           result = 'nightly'
     return result
 
@@ -351,6 +392,16 @@ class LOTABuilds:
       os.mkdir('api/v1')
     if input('Clear output folder? [Y/N = default]').lower() == 'y':
       self.__clearFolder('api/v1')
+
+  def __removeTrailingDashes(self,tokens):
+    result = []
+    for token in tokens:
+      if token:
+        result.append(token.strip('-'))
+      else:
+        result.append('')
+    print(f"this is the output from inside  __removeTrailingDashes: {result}")
+    return result
 
   def writeApiFiles(self):
     self.__prepareOutput()
