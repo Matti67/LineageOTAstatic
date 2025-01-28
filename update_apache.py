@@ -241,7 +241,7 @@ class LOTABuilds:
         #build['filePath'] = archive['browser_download_url']
         #build['url'] = archive['browser_download_url']
         build['url'] = self.__base_url+'/'+archive
-        build['channel'] = self.__getChannel(re.sub('/[0-9]/','',tokens[2]), tokens[0], tokens[1])
+        build['channel'] = self.__getChannel(re.sub('/[0-9]/','',tokens[2]), tokens[1], tokens[0])
         build['filename'] = archive
         key_md5 = archive
         #build['timestamp'] = int(time.mktime(datetime.datetime.strptime(archive['updated_at'],'%Y-%m-%dT%H:%M:%SZ').timetuple()))
