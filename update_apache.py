@@ -453,7 +453,7 @@ class LOTABuilds:
         if updates:
           response = { "response": updates }
           #print(f"Saving to {json_filename}")  # Debugging output
-          with open(f'api/v1/{model}_{channel}.json', 'w') as file:
+          with open(f'api/v1/{model}_{channel}', 'w') as file:
             json.dump(response, file, indent=4)
 
 # END CLASS LOTABuilds
