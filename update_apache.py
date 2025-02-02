@@ -245,6 +245,8 @@ class LOTABuilds:
         build['filename'] = archive
         key_md5 = archive
         #build['timestamp'] = int(time.mktime(datetime.datetime.strptime(archive['updated_at'],'%Y-%m-%dT%H:%M:%SZ').timetuple()))
+        #the size of the build is hard coded and it is getting from the command: du -hb release
+        build['size'] = 784327786
         build['model'] = tokens[0] if tokens[1] == 'cm' else tokens[3]
         build['version'] = tokens[0]
         #build['size'] = archive['size']
@@ -255,7 +257,9 @@ class LOTABuilds:
           build['apiLevel'] = props_dict[key]
         if key == 'ro.build.version.incremental':
           build['incremental'] = props_dict[key]
-          
+        if key == 'ro.build.id':
+          build['uid'] = props_dict[key]
+
       #for prop in props:
       #  properties = self.__loadProperties(prop['browser_download_url'])
       #  build['timestamp'] = int(properties.get('ro.build.date.utc',build['timestamp']))
@@ -441,7 +445,7 @@ class LOTABuilds:
               update['url'] = build.get('url', '')
               update['timestamp'] = build.get('timestamp', 0)
               update['md5sum'] = build.get('md5', '')
-              update['changes'] = build.get('changelogUrl', '')
+              #update['changes'] = build.get('changelogUrl', '')
               update['channel'] = channel
               update['filename'] = build.get('filename', '')
               update['romtype'] = channel
