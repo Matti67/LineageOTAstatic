@@ -3,14 +3,14 @@
         {
             "incremental": "eng.max.20221215.110341",
             "api_level": "32",
-            "url": "https://137.204.2.22:443/releases/lineage-19.1-20250121-UNOFFICIAL-a505f-ota_eng_max.zip",
+            "url": "https://137.204.2.22:443/releases/lineage-21.0-20250121-UNOFFICIAL-a505f_ota_eng_max.zip",
             "timestamp": "Thu Dec 15 10:47:48 CET 2022",
             "md5sum": "936d464aa1ac26d88e30ef6ad91c9259",
             "channel": "unofficial",
-            "filename": "lineage-19.1-20250121-UNOFFICIAL-a505f-ota_eng_max.zip",
+            "filename": "lineage-21.0-20250121-UNOFFICIAL-a505f_ota_eng_max.zip",
             "romtype": "unofficial",
             "datetime": "Thu Dec 15 10:47:48 CET 2022",
-            "version": "19.1",
+            "version": "21.0",
             "id": "SQ3A.220705.004",
             "size": 784327786
         }
